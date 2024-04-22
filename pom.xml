@@ -57,6 +57,13 @@
             <version>${keycloak.version}</version>
         </dependency>
 
+        <!-- Keycloak Admin Client -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-admin-client</artifactId>
+            <version>${keycloak.version}</version>
+        </dependency>
+
         <!-- Spring Boot Starter Email -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

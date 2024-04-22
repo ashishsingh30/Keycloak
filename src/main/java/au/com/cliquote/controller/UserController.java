@@ -20,10 +20,9 @@ public class UserController {
     @Autowired
     private AuditService auditService;
 
-    // Endpoint to register a new user
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody UserDTO user) {
-        String realmName = realmMappingService.getRealmForEmail(user.getEmail());
+        String realmName = realmMappingService.getRealmForDomain(user.getEmail().substring(user.getEmail().indexOf('@') + 1));
         if (!realmService.isAuthorizedForRealm(realmName)) {
             auditService.logAction("Unauthorized attempt to register user", user.getUsername());
             return ResponseEntity.status(403).body("Unauthorized to manage users in this realm");
@@ -38,10 +37,9 @@ public class UserController {
         }
     }
 
-    // Endpoint to update an existing user
     @PutMapping("/update/{userId}")
     public ResponseEntity<String> updateUser(@PathVariable String userId, @RequestBody UserDTO user) {
-        String realmName = realmMappingService.getRealmForEmail(user.getEmail());
+        String realmName = realmMappingService.getRealmForDomain(user.getEmail().substring(user.getEmail().indexOf('@') + 1));
         if (!realmService.isAuthorizedForRealm(realmName)) {
             auditService.logAction("Unauthorized attempt to update user", user.getUsername());
             return ResponseEntity.status(403).body("Unauthorized to update user in this realm");
@@ -56,11 +54,10 @@ public class UserController {
         }
     }
 
-    // Endpoint to disable a user
     @PostMapping("/disable/{userId}")
     public ResponseEntity<String> disableUser(@PathVariable String userId) {
-        String email = userService.getUserEmail(userId); // Assume a method to fetch user email
-        String realmName = realmMappingService.getRealmForEmail(email);
+        String email = userService.getUserEmail(userId);  // This method needs to be properly defined in UserService.
+        String realmName = realmMappingService.getRealmForDomain(email.substring(email.indexOf('@') + 1));
         if (!realmService.isAuthorizedForRealm(realmName)) {
             auditService.logAction("Unauthorized attempt to disable user", userId);
             return ResponseEntity.status(403).body("Unauthorized to disable user in this realm");
