@@ -2,6 +2,8 @@ package au.com.cliquote.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,11 +16,23 @@ public class SelfServiceController {
     @Autowired
     private AuditService auditService;
 
+    @Autowired
+    private RealmMappingService realmMappingService;
+
     // Endpoint to update user profile information
     @PatchMapping("/update-profile")
     public ResponseEntity<String> updateProfile(@RequestBody UserDTO user) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+
+        if (!currentUsername.equals(user.getUsername())) {
+            auditService.logAction(currentUsername, "Unauthorized attempt to update profile");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized to update profile");
+        }
+
         try {
-            boolean updated = userService.updateUserDetails(user);
+            String realmName = realmMappingService.getRealmForDomain(user.getEmail().substring(user.getEmail().indexOf('@') + 1));
+            boolean updated = userService.updateUser(realmName, user.getUsername(), user);
             if (updated) {
                 auditService.logAction(user.getUsername(), "Updated profile successfully");
                 return ResponseEntity.ok("Profile updated successfully");
@@ -34,9 +48,13 @@ public class SelfServiceController {
 
     // Endpoint to change user password
     @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(@RequestParam String username, @RequestParam String oldPassword, @RequestParam String newPassword) {
+    public ResponseEntity<String> changePassword(@RequestParam String oldPassword, @RequestParam String newPassword) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName(); // Ensure operation is performed on the authenticated user
+
         try {
-            if (userService.changePassword(username, oldPassword, newPassword)) {
+            String realmName = realmMappingService.getRealmForDomain(username.substring(username.indexOf('@') + 1));
+            if (userService.changePassword(username, realmName, newPassword)) {
                 auditService.logAction(username, "Password changed successfully");
                 return ResponseEntity.ok("Password changed successfully");
             } else {
